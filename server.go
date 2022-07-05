@@ -1291,9 +1291,13 @@ func (s *Server) processUnaryRPC(method string, t transport.ServerTransport, str
 		}
 		return nil
 	}
+
+	// var rawReplyStruct interface{}
+	responseAttachment := make(metadata.MD)
 	ctx := NewContextWithServerTransportStream(stream.Context(), stream)
 	ctx = context.WithValue(ctx, "XXX_TRIPLE_GO_METHOD_NAME", method)
 	ctx = context.WithValue(ctx, "XXX_TRIPLE_GO_INTERFACE_NAME", stream.Method())
+	ctx = context.WithValue(ctx, "XXX_TRIPLE_GO_RESPONSE_ATTACHMENT", responseAttachment)
 	ctx = context.WithValue(ctx, "XXX_TRIPLE_GO_GENERIC_PAYLOAD", d)
 	reply, appErr := md.Handler(info.serviceImpl, ctx, df, s.opts.unaryInt)
 	if appErr != nil {
@@ -1330,7 +1334,6 @@ func (s *Server) processUnaryRPC(method string, t transport.ServerTransport, str
 	opts := &transport.Options{Last: true}
 
 	var rawReplyStruct interface{}
-	responseAttachment := make(metadata.MD)
 
 	if result, ok := reply.(OuterResult); ok {
 		// proceess header trailer
@@ -1662,10 +1665,10 @@ func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Str
 
 	srv, knownService := s.services[service]
 	if knownService {
-		if md, ok := srv.methods["InvokeWithArgs"]; ok {
-			s.processUnaryRPC(method, t, stream, srv, md, trInfo)
-			return
-		}
+		// if md, ok := srv.methods["InvokeWithArgs"]; ok {
+		// 	s.processUnaryRPC(method, t, stream, srv, md, trInfo)
+		// 	return
+		// }
 		if md, ok := srv.methods[method]; ok {
 			s.processUnaryRPC(method, t, stream, srv, md, trInfo)
 			return
