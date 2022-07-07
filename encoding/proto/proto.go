@@ -42,28 +42,18 @@ func (h *PBTwoWayCodec) Name() string {
 }
 
 // NewPBTwoWayCodec new PBTwoWayCodec instance
-func NewPBTwoWayCodec() encoding.TwoWayCodec {
+func NewPBTwoWayCodec() encoding.Codec {
 	return &PBTwoWayCodec{
 		codec: raw_proto.NewProtobufCodec(),
 	}
 }
 
-// MarshalRequest marshal interface @v to []byte
-func (h *PBTwoWayCodec) MarshalRequest(v interface{}) ([]byte, error) {
+// Marshal marshal interface @v to []byte
+func (h *PBTwoWayCodec) Marshal(v interface{}) ([]byte, error) {
 	return h.codec.Marshal(v)
 }
 
-// UnmarshalRequest unmarshal bytes @data to interface
-func (h *PBTwoWayCodec) UnmarshalRequest(data []byte, v interface{}) error {
-	return h.codec.Unmarshal(data, v)
-}
-
-// MarshalResponse marshal interface @v to []byte
-func (h *PBTwoWayCodec) MarshalResponse(v interface{}) ([]byte, error) {
-	return h.codec.Marshal(v)
-}
-
-// UnmarshalResponse unmarshal bytes @data to interface
-func (h *PBTwoWayCodec) UnmarshalResponse(data []byte, v interface{}) error {
+// Unmarshal unmarshal bytes @data to interface
+func (h *PBTwoWayCodec) Unmarshal(data []byte, v interface{}) error {
 	return h.codec.Unmarshal(data, v)
 }

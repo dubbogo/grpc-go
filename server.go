@@ -146,7 +146,7 @@ type Server struct {
 
 type serverOptions struct {
 	creds                 credentials.TransportCredentials
-	codec                 encoding.TwoWayCodec
+	codec                 encoding.Codec
 	cp                    Compressor
 	dc                    Decompressor
 	unaryInt              UnaryServerInterceptor
@@ -278,7 +278,7 @@ func KeepaliveEnforcementPolicy(kep keepalive.EnforcementPolicy) ServerOption {
 // See also
 // https://github.com/grpc/grpc-go/blob/master/Documentation/encoding.md#using-a-codec.
 // Will be supported throughout 1.x.
-func CustomCodec(codec encoding.TwoWayCodec) ServerOption {
+func CustomCodec(codec encoding.Codec) ServerOption {
 	return newFuncServerOption(func(o *serverOptions) {
 		o.codec = codec
 	})
@@ -293,7 +293,7 @@ func CustomCodec(codec encoding.TwoWayCodec) ServerOption {
 // See Content-Type on
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests for
 // more details. Also see the documentation on RegisterCodec and
-// CallContentSubtype for more details on the interaction between encoding.TwoWayCodec
+// CallContentSubtype for more details on the interaction between encoding.Codec
 // and content-subtype.
 //
 // This function is provided for advanced users; prefer to register codecs
@@ -307,7 +307,7 @@ func CustomCodec(codec encoding.TwoWayCodec) ServerOption {
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
-func ForceServerCodec(codec encoding.TwoWayCodec) ServerOption {
+func ForceServerCodec(codec encoding.Codec) ServerOption {
 	return newFuncServerOption(func(o *serverOptions) {
 		o.codec = codec
 	})
@@ -1269,7 +1269,7 @@ func (s *Server) processUnaryRPC(method string, t transport.ServerTransport, str
 		t.IncrMsgRecv()
 	}
 	df := func(v interface{}) error {
-		if err := s.getCodec(stream.ContentSubtype()).UnmarshalRequest(d, v); err != nil {
+		if err := s.getCodec(stream.ContentSubtype()).Unmarshal(d, v); err != nil {
 			return status.Errorf(codes.Internal, "grpc: error unmarshalling request: %v", err)
 		}
 		if sh != nil {
@@ -1859,7 +1859,7 @@ func (s *Server) GracefulStop() {
 
 // contentSubtype must be lowercase
 // cannot return nil
-func (s *Server) getCodec(contentSubtype string) encoding.TwoWayCodec {
+func (s *Server) getCodec(contentSubtype string) encoding.Codec {
 	if s.opts.codec != nil {
 		return s.opts.codec
 	}
