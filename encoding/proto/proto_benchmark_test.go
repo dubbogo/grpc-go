@@ -72,7 +72,7 @@ func BenchmarkProtoCodec(b *testing.B) {
 			protoStructs := setupBenchmarkProtoCodecInputs(s)
 			name := fmt.Sprintf("MinPayloadSize:%v/SetParallelism(%v)", s, p)
 			b.Run(name, func(b *testing.B) {
-				codec := NewPBTwoWayCodec()
+				codec := codec{}
 				b.SetParallelism(p)
 				b.RunParallel(func(pb *testing.PB) {
 					benchmarkProtoCodec(codec, protoStructs, pb, b)
