@@ -30,16 +30,16 @@ import (
 	"github.com/dubbogo/grpc-go/test/codec_perf"
 )
 
-func marshalAndUnmarshal(t *testing.T, codec encoding.TwoWayCodec, expectedBody []byte) {
+func marshalAndUnmarshal(t *testing.T, codec encoding.Codec, expectedBody []byte) {
 	p := &codec_perf.Buffer{}
 	p.Body = expectedBody
 
-	marshalledBytes, err := codec.MarshalRequest(p)
+	marshalledBytes, err := codec.Marshal(p)
 	if err != nil {
 		t.Errorf("codec.Marshal(_) returned an error")
 	}
 
-	if err := codec.UnmarshalRequest(marshalledBytes, p); err != nil {
+	if err := codec.Unmarshal(marshalledBytes, p); err != nil {
 		t.Errorf("codec.Unmarshal(_) returned an error")
 	}
 
@@ -107,19 +107,19 @@ func (s) TestStaggeredMarshalAndUnmarshalUsingSamePool(t *testing.T) {
 	var m1, m2 []byte
 	var err error
 
-	if m1, err = codec1.MarshalRequest(&proto1); err != nil {
+	if m1, err = codec1.Marshal(&proto1); err != nil {
 		t.Errorf("codec.Marshal(%s) failed", &proto1)
 	}
 
-	if m2, err = codec2.MarshalRequest(&proto2); err != nil {
+	if m2, err = codec2.Marshal(&proto2); err != nil {
 		t.Errorf("codec.Marshal(%s) failed", &proto2)
 	}
 
-	if err = codec1.UnmarshalResponse(m1, &proto1); err != nil {
+	if err = codec1.Unmarshal(m1, &proto1); err != nil {
 		t.Errorf("codec.Unmarshal(%v) failed", m1)
 	}
 
-	if err = codec2.UnmarshalResponse(m2, &proto2); err != nil {
+	if err = codec2.Unmarshal(m2, &proto2); err != nil {
 		t.Errorf("codec.Unmarshal(%v) failed", m2)
 	}
 

@@ -447,7 +447,7 @@ type clientStream struct {
 	cc       *ClientConn
 	desc     *StreamDesc
 
-	codec encoding.TwoWayCodec
+	codec encoding.Codec
 	cp    Compressor
 	comp  encoding.Compressor
 
@@ -1201,7 +1201,7 @@ type addrConnStream struct {
 	ctx       context.Context
 	sentLast  bool
 	desc      *StreamDesc
-	codec     encoding.TwoWayCodec
+	codec     encoding.Codec
 	cp        Compressor
 	comp      encoding.Compressor
 	decompSet bool
@@ -1424,7 +1424,7 @@ type serverStream struct {
 	t     transport.ServerTransport
 	s     *transport.Stream
 	p     *parser
-	codec encoding.TwoWayCodec
+	codec encoding.Codec
 
 	cp     Compressor
 	dc     Decompressor
@@ -1614,7 +1614,7 @@ func MethodFromServerStream(stream ServerStream) (string, bool) {
 // prepareMsg returns the hdr, payload and data
 // using the compressors passed or using the
 // passed preparedmsg
-func prepareMsg(msgType string, m interface{}, codec encoding.TwoWayCodec, cp Compressor, comp encoding.Compressor) (hdr, payload, data []byte, err error) {
+func prepareMsg(msgType string, m interface{}, codec encoding.Codec, cp Compressor, comp encoding.Compressor) (hdr, payload, data []byte, err error) {
 	if preparedMsg, ok := m.(*PreparedMsg); ok {
 		return preparedMsg.hdr, preparedMsg.payload, preparedMsg.encodedData, nil
 	}

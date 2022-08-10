@@ -21,49 +21,38 @@
 package proto
 
 import (
-	"github.com/dubbogo/grpc-go/encoding"
-	"github.com/dubbogo/grpc-go/encoding/raw_proto"
+	"fmt"
+
+	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/encoding"
 )
 
 // Name is the name registered for the proto compressor.
 const Name = "proto"
 
 func init() {
-	encoding.RegisterCodec(NewPBTwoWayCodec())
+	encoding.RegisterCodec(codec{})
 }
 
-// PBTwoWayCodec is pb impl of TwoWayCodec
-type PBTwoWayCodec struct {
-	codec encoding.Codec
-}
+// codec is a Codec implementation with protobuf. It is the default codec for gRPC.
+type codec struct{}
 
-func (h *PBTwoWayCodec) Name() string {
-	return "proto"
-}
-
-// NewPBTwoWayCodec new PBTwoWayCodec instance
-func NewPBTwoWayCodec() encoding.TwoWayCodec {
-	return &PBTwoWayCodec{
-		codec: raw_proto.NewProtobufCodec(),
+func (codec) Marshal(v interface{}) ([]byte, error) {
+	vv, ok := v.(proto.Message)
+	if !ok {
+		return nil, fmt.Errorf("failed to marshal, message is %T, want proto.Message", v)
 	}
+	return proto.Marshal(vv)
 }
 
-// MarshalRequest marshal interface @v to []byte
-func (h *PBTwoWayCodec) MarshalRequest(v interface{}) ([]byte, error) {
-	return h.codec.Marshal(v)
+func (codec) Unmarshal(data []byte, v interface{}) error {
+	vv, ok := v.(proto.Message)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal, message is %T, want proto.Message", v)
+	}
+	return proto.Unmarshal(data, vv)
 }
 
-// UnmarshalRequest unmarshal bytes @data to interface
-func (h *PBTwoWayCodec) UnmarshalRequest(data []byte, v interface{}) error {
-	return h.codec.Unmarshal(data, v)
-}
-
-// MarshalResponse marshal interface @v to []byte
-func (h *PBTwoWayCodec) MarshalResponse(v interface{}) ([]byte, error) {
-	return h.codec.Marshal(v)
-}
-
-// UnmarshalResponse unmarshal bytes @data to interface
-func (h *PBTwoWayCodec) UnmarshalResponse(data []byte, v interface{}) error {
-	return h.codec.Unmarshal(data, v)
+func (codec) Name() string {
+	return Name
 }

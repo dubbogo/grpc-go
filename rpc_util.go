@@ -160,7 +160,7 @@ type callInfo struct {
 	maxSendMessageSize    *int
 	creds                 credentials.PerRPCCredentials
 	contentSubtype        string
-	codec                 encoding.TwoWayCodec
+	codec                 encoding.Codec
 	maxRetryRPCBufferSize int
 }
 
@@ -450,7 +450,7 @@ func (o ContentSubtypeCallOption) after(c *callInfo, attempt *csAttempt) {}
 //
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
-func ForceCodec(codec encoding.TwoWayCodec) CallOption {
+func ForceCodec(codec encoding.Codec) CallOption {
 	return ForceCodecCallOption{Codec: codec}
 }
 
@@ -462,7 +462,7 @@ func ForceCodec(codec encoding.TwoWayCodec) CallOption {
 // Notice: This type is EXPERIMENTAL and may be changed or removed in a
 // later release.
 type ForceCodecCallOption struct {
-	Codec encoding.TwoWayCodec
+	Codec encoding.Codec
 }
 
 func (o ForceCodecCallOption) before(c *callInfo) error {
@@ -472,10 +472,10 @@ func (o ForceCodecCallOption) before(c *callInfo) error {
 func (o ForceCodecCallOption) after(c *callInfo, attempt *csAttempt) {}
 
 // CallCustomCodec behaves like ForceCodec, but accepts a grpc.Codec instead of
-// an encoding.TwoWayCodec.
+// an encoding.Codec.
 //
 // Deprecated: use ForceCodec instead.
-func CallCustomCodec(codec encoding.TwoWayCodec) CallOption {
+func CallCustomCodec(codec encoding.Codec) CallOption {
 	return CustomCodecCallOption{Codec: codec}
 }
 
@@ -487,7 +487,7 @@ func CallCustomCodec(codec encoding.TwoWayCodec) CallOption {
 // Notice: This type is EXPERIMENTAL and may be changed or removed in a
 // later release.
 type CustomCodecCallOption struct {
-	Codec encoding.TwoWayCodec
+	Codec encoding.Codec
 }
 
 func (o CustomCodecCallOption) before(c *callInfo) error {
@@ -589,17 +589,13 @@ func (p *parser) recvMsg(maxReceiveMessageSize int) (pf payloadFormat, msg []byt
 // encode serializes msg and returns a buffer containing the message, or an
 // error if it is too large to be transmitted by grpc.  If msg is nil, it
 // generates an empty message.
-func encode(encodeType string, c encoding.TwoWayCodec, msg interface{}) ([]byte, error) {
+func encode(encodeType string, c encoding.Codec, msg interface{}) ([]byte, error) {
 	if msg == nil { // NOTE: typed nils will not be caught by this check
 		return nil, nil
 	}
 	var b []byte
 	var err error
-	if encodeType == "req" {
-		b, err = c.MarshalRequest(msg)
-	} else {
-		b, err = c.MarshalResponse(msg)
-	}
+	b, err = c.Marshal(msg)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "grpc: error while marshaling: %v", err.Error())
 	}
@@ -762,19 +758,13 @@ func decompress(compressor encoding.Compressor, d []byte, maxReceiveMessageSize 
 // For the two compressor parameters, both should not be set, but if they are,
 // dc takes precedence over compressor.
 // TODO(dfawley): wrap the old compressor/decompressor using the new API?
-func recv(recvType string, p *parser, c encoding.TwoWayCodec, s *transport.Stream, dc Decompressor, m interface{}, maxReceiveMessageSize int, payInfo *payloadInfo, compressor encoding.Compressor) error {
+func recv(recvType string, p *parser, c encoding.Codec, s *transport.Stream, dc Decompressor, m interface{}, maxReceiveMessageSize int, payInfo *payloadInfo, compressor encoding.Compressor) error {
 	d, err := recvAndDecompress(p, s, dc, maxReceiveMessageSize, payInfo, compressor)
 	if err != nil {
 		return err
 	}
-	if recvType == "req" {
-		if err := c.UnmarshalRequest(d, m); err != nil {
-			return status.Errorf(codes.Internal, "grpc: failed to unmarshal the received message %v", err)
-		}
-	} else {
-		if err := c.UnmarshalResponse(d, m); err != nil {
-			return status.Errorf(codes.Internal, "grpc: failed to unmarshal the received message %v", err)
-		}
+	if err := c.Unmarshal(d, m); err != nil {
+		return status.Errorf(codes.Internal, "grpc: failed to unmarshal the received message %v", err)
 	}
 
 	if payInfo != nil {
@@ -795,14 +785,14 @@ type rpcInfo struct {
 // pointers to codec, and compressors, then we can use preparedMsg for Async message prep
 // and reuse marshalled bytes
 type compressorInfo struct {
-	codec encoding.TwoWayCodec
+	codec encoding.Codec
 	cp    Compressor
 	comp  encoding.Compressor
 }
 
 type rpcInfoContextKey struct{}
 
-func newContextWithRPCInfo(ctx context.Context, failfast bool, codec encoding.TwoWayCodec, cp Compressor, comp encoding.Compressor) context.Context {
+func newContextWithRPCInfo(ctx context.Context, failfast bool, codec encoding.Codec, cp Compressor, comp encoding.Compressor) context.Context {
 	return context.WithValue(ctx, rpcInfoContextKey{}, &rpcInfo{
 		failfast: failfast,
 		preloaderInfo: &compressorInfo{
@@ -876,10 +866,10 @@ func setCallInfoCodec(c *callInfo) error {
 		// subtype if it is not set.
 		if c.contentSubtype == "" {
 			// c.codec is a baseCodec to hide the difference between grpc.Codec and
-			// encoding.TwoWayCodec (Name vs. String method name).  We only support
-			// setting content subtype from encoding.TwoWayCodec to avoid a behavior
+			// encoding.Codec (Name vs. String method name).  We only support
+			// setting content subtype from encoding.Codec to avoid a behavior
 			// change with the deprecated version.
-			if ec, ok := c.codec.(encoding.TwoWayCodec); ok {
+			if ec, ok := c.codec.(encoding.Codec); ok {
 				c.contentSubtype = strings.ToLower(ec.Name())
 			}
 		}
